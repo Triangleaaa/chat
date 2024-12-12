@@ -436,12 +436,12 @@
           const reaction = emoji.getAttribute('data-reaction');
           
           const reactionsContainer = messageDiv.querySelector('.reactions');
-          const reactionElement = document.createElement('span');
-          reactionElement.classList.add('reaction');
-          reactionElement.textContent = reaction;
-          reactionsContainer.appendChild(reactionElement);
-
-          socket.emit('add reaction', timestamp, reaction);
+          const newReaction = document.createElement('span');
+          newReaction.classList.add('reaction');
+          newReaction.textContent = reaction;
+          reactionsContainer.appendChild(newReaction);
+          
+          socket.emit('reaction', { messageId: messageDiv.id, reaction });
         });
       });
 
@@ -449,24 +449,13 @@
       messageContainer.scrollTop = messageContainer.scrollHeight;
     }
 
-    document.getElementById('message').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const messageInput = document.getElementById('message');
-        const message = messageInput.value;
-        if (message) {
-          const timestamp = Date.now();
-          socket.emit('chat message', { username, message, timestamp, avatarUrl });
-          messageInput.value = '';
-        }
-      }
-    });
-
     document.getElementById('send-message').addEventListener('click', () => {
       const messageInput = document.getElementById('message');
-      const message = messageInput.value;
+      const message = messageInput.value.trim();
+
       if (message) {
         const timestamp = Date.now();
-        socket.emit('chat message', { username, message, timestamp, avatarUrl });
+        socket.emit('chat message', { username, message, timestamp, avatarUrl, reactions: [] });
         messageInput.value = '';
       }
     });
