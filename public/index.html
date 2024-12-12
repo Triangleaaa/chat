@@ -16,14 +16,15 @@
       background-color: #121212;
       color: #fff;
       display: flex;
-      height: 100vh;
       justify-content: center;
       align-items: center;
+      height: 100vh;
       overflow: hidden;
     }
 
     .container {
       display: flex;
+      flex-direction: row;
       width: 90%;
       max-width: 1000px;
       height: 90%;
@@ -61,6 +62,7 @@
       flex-grow: 1;
       display: flex;
       flex-direction: column;
+      height: 100%;  /* Ensure chat area takes up full height */
     }
 
     .chat-header {
@@ -75,9 +77,13 @@
     .messages {
       flex-grow: 1;
       padding: 20px;
-      overflow-y: auto;
+      overflow-y: auto; /* Allow scrolling */
       background-color: #333;
       border-bottom: 1px solid #444;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 100%; /* Allow flex container to take up all available space */
     }
 
     .message {
@@ -153,6 +159,8 @@
       padding: 10px;
       background-color: #2b2b2b;
       border-top: 1px solid #444;
+      justify-content: center;
+      position: relative;
     }
 
     .message-input input {
@@ -219,29 +227,56 @@
       background-color: #5b6eae;
     }
 
-    /* Style for Change Profile Button */
-    .change-profile {
-      background-color: #7289da;
-      color: #fff;
-      padding: 12px 20px;
-      margin-top: 20px;
-      text-align: center;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background-color 0.2s ease, transform 0.2s ease;
-      border: none;
-    }
+    /* Media Query for Mobile Devices */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        height: 100%;
+      }
 
-    .change-profile:hover {
-      background-color: #5b6eae;
-      transform: scale(1.05);
-    }
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #444;
+      }
 
-    .change-profile:active {
-      transform: scale(0.98);
-    }
+      .chat-area {
+        width: 100%;
+      }
 
+      .message {
+        max-width: 90%;
+      }
+
+      .message-input input {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .message-input button {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .avatar-setup {
+        width: 80%;
+      }
+
+      /* Ensure message input does not overlap when keyboard is visible */
+      .message-input {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        z-index: 1000;
+        background-color: #2b2b2b;
+      }
+
+      .messages {
+        flex-grow: 1;
+        max-height: calc(100% - 60px); /* Keep space for the message input */
+        overflow-y: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -255,7 +290,6 @@
     <div class="sidebar">
       <h2>Chat</h2>
       <div id="username"></div>
-      <div class="change-profile" id="change-profile">Change Username & Avatar</div>
     </div>
 
     <div class="chat-area">
@@ -329,51 +363,31 @@
       });
     });
 
-    // Allow the user to change their username and avatar
-    document.getElementById('change-profile').addEventListener('click', () => {
-      const newUsername = prompt('Enter your new username', username);
-      if (newUsername) {
-        username = newUsername;
-        localStorage.setItem('username', username);
-        document.getElementById('username').textContent = `Logged in as: ${username}`;
-      }
-
-      const newAvatarInput = document.createElement('input');
-      newAvatarInput.type = 'file';
-      newAvatarInput.accept = 'image/*';
-      newAvatarInput.click();
-
-      newAvatarInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const formData = new FormData();
-          formData.append('avatar', file);
-
-          fetch('/upload-avatar', {
-            method: 'POST',
-            body: formData,
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              avatarUrl = data.avatarUrl;
-              localStorage.setItem('avatarUrl', avatarUrl);
-              document.getElementById('username').textContent = `Logged in as: ${username}`;
-            } else {
-              alert('Avatar upload failed.');
-            }
-          })
-          .catch(error => {
-            console.error('Error uploading avatar:', error);
-            alert('Failed to upload avatar.');
-          });
-        }
-      });
-    });
-
     // Display incoming messages
     socket.on('chat message', (data) => {
       displayMessage(data.username, data.message, data.timestamp, data.avatarUrl, data.reactions);
+    });
+
+    // Display previous chat messages when the page loads
+    socket.on('chat messages', (messages) => {
+      messages.forEach(msg => {
+        displayMessage(msg.username, msg.message, msg.timestamp, msg.avatarUrl, msg.reactions);
+      });
+    });
+
+    // Handle emoji reactions
+    socket.on('message reaction', (messageId, reactions) => {
+      const messageElement = document.getElementById(messageId);
+      if (messageElement) {
+        const reactionsContainer = messageElement.querySelector('.reactions');
+        reactionsContainer.innerHTML = ''; // Clear existing reactions
+        reactions.forEach(reaction => {
+          const reactionElement = document.createElement('span');
+          reactionElement.classList.add('reaction');
+          reactionElement.textContent = reaction;
+          reactionsContainer.appendChild(reactionElement);
+        });
+      }
     });
 
     function displayMessage(username, message, timestamp, avatarUrl, reactions = []) {
@@ -384,39 +398,45 @@
 
       const formattedTime = new Date(timestamp).toLocaleTimeString();
 
-      messageDiv.innerHTML = `
+      messageDiv.innerHTML = ` 
         <img src="${avatarUrl}" class="avatar" alt="Avatar" />
         <div class="message-content">
           <span class="username">${username}:</span>
           <span class="text">${message}</span>
           <div class="timestamp">${formattedTime}</div>
-          <div class="emoji-reactions">
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '👍')">👍</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '❤️')">❤️</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '😂')">😂</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '💀')">💀</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '🗿')">🗿</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '😭')">😭</span>
-            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '🙏')">🙏</span>
-          </div>
-          <div class="reactions" id="reactions-${timestamp}">
+          <div class="reactions">
             ${reactions.map(emoji => `<span class="reaction">${emoji}</span>`).join('')}
+          </div>
+          <div class="emoji-reactions">
+            <span class="emoji-reaction" data-reaction="❤️">❤️</span>
+            <span class="emoji-reaction" data-reaction="👍">👍</span>
+            <span class="emoji-reaction" data-reaction="😂">😂</span>
+            <span class="emoji-reaction" data-reaction="😮">😮</span>
+            <span class="emoji-reaction" data-reaction="😢">😢</span>
           </div>
         </div>
       `;
+
+      // Add emoji reaction event listeners
+      const emojiReactions = messageDiv.querySelectorAll('.emoji-reaction');
+      emojiReactions.forEach(emoji => {
+        emoji.addEventListener('click', () => {
+          const reaction = emoji.getAttribute('data-reaction');
+          
+          // Update the DOM immediately
+          const reactionsContainer = messageDiv.querySelector('.reactions');
+          const reactionElement = document.createElement('span');
+          reactionElement.classList.add('reaction');
+          reactionElement.textContent = reaction;
+          reactionsContainer.appendChild(reactionElement);
+
+          // Emit the reaction to the server
+          socket.emit('add reaction', timestamp, reaction);
+        });
+      });
+
       messageContainer.appendChild(messageDiv);
       messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
-    }
-
-    function addReaction(timestamp, emoji) {
-      const reactionsContainer = document.getElementById(`reactions-${timestamp}`);
-      const newReaction = document.createElement('span');
-      newReaction.className = 'reaction';
-      newReaction.textContent = emoji;
-      reactionsContainer.appendChild(newReaction);
-
-      // Send the reaction to the server
-      socket.emit('add reaction', { timestamp, emoji });
     }
 
     // Send message only on enter key press
@@ -426,7 +446,7 @@
         const message = messageInput.value;
         if (message) {
           const timestamp = Date.now();
-          socket.emit('chat message', { username, message, timestamp, avatarUrl, reactions: [] });
+          socket.emit('chat message', { username, message, timestamp, avatarUrl });
           messageInput.value = '';
         }
       }
@@ -437,7 +457,7 @@
       const message = messageInput.value;
       if (message) {
         const timestamp = Date.now();
-        socket.emit('chat message', { username, message, timestamp, avatarUrl, reactions: [] });
+        socket.emit('chat message', { username, message, timestamp, avatarUrl });
         messageInput.value = '';
       }
     });
