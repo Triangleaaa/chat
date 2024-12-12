@@ -13,8 +13,7 @@
 
     body {
       font-family: 'Arial', sans-serif;
-      background-color: #121212;
-      color: #fff;
+      background: linear-gradient(45deg, #3a3d44, #181a1f);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -62,7 +61,7 @@
       flex-grow: 1;
       display: flex;
       flex-direction: column;
-      height: 100%;  /* Ensure chat area takes up full height */
+      height: 100%;
     }
 
     .chat-header {
@@ -77,13 +76,13 @@
     .messages {
       flex-grow: 1;
       padding: 20px;
-      overflow-y: auto; /* Allow scrolling */
+      overflow-y: auto;
       background-color: #333;
       border-bottom: 1px solid #444;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 100%; /* Allow flex container to take up all available space */
+      max-height: 100%;
     }
 
     .message {
@@ -196,38 +195,52 @@
       transform: scale(1.1);
     }
 
-    .avatar-setup {
+    .avatar-setup, .username-setup {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       background-color: #2b2b2b;
       color: #fff;
-      padding: 20px;
+      padding: 30px;
       border-radius: 10px;
       text-align: center;
-      width: 300px;
+      width: 400px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .avatar-setup h2, .username-setup h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
     }
 
     .avatar-setup input[type="file"] {
       margin-top: 15px;
-    }
-
-    .avatar-setup button {
-      margin-top: 20px;
-      background-color: #7289da;
-      padding: 10px;
       border: none;
-      color: white;
+      padding: 10px;
+      background-color: #4e5355;
+      color: #fff;
       border-radius: 5px;
       cursor: pointer;
     }
 
-    .avatar-setup button:hover {
+    .avatar-setup button, .username-setup button {
+      margin-top: 20px;
+      background-color: #7289da;
+      padding: 15px;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 18px;
+    }
+
+    .avatar-setup button:hover, .username-setup button:hover {
       background-color: #5b6eae;
     }
 
-    /* Media Query for Mobile Devices */
+    /* Mobile Adaptation */
     @media (max-width: 768px) {
       .container {
         flex-direction: column;
@@ -258,22 +271,13 @@
         padding: 10px;
       }
 
-      .avatar-setup {
+      .avatar-setup, .username-setup {
         width: 80%;
-      }
-
-      /* Ensure message input does not overlap when keyboard is visible */
-      .message-input {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        z-index: 1000;
-        background-color: #2b2b2b;
       }
 
       .messages {
         flex-grow: 1;
-        max-height: calc(100% - 60px); /* Keep space for the message input */
+        max-height: calc(100% - 60px);
         overflow-y: auto;
       }
     }
@@ -281,9 +285,16 @@
 </head>
 <body>
   <div class="avatar-setup" id="avatar-setup">
-    <h2>Select an Avatar</h2>
+    <h2>Welcome to the Chat</h2>
+    <p>Select an Avatar</p>
     <input type="file" id="avatar-upload" accept="image/*" />
-    <button id="confirm-avatar">Confirm</button>
+    <button id="confirm-avatar">Confirm Avatar</button>
+  </div>
+
+  <div class="username-setup" id="username-setup" style="display: none;">
+    <h2>Set Your Username</h2>
+    <input type="text" id="username-input" placeholder="Enter your username" />
+    <button id="confirm-username">Confirm Username</button>
   </div>
 
   <div class="container" style="display: none;">
@@ -310,7 +321,6 @@
     let username = null;
     let avatarUrl = null;
 
-    // Check if the user info is stored in localStorage
     const savedUsername = localStorage.getItem('username');
     const savedAvatarUrl = localStorage.getItem('avatarUrl');
 
@@ -319,6 +329,7 @@
       avatarUrl = savedAvatarUrl;
       document.getElementById('username').textContent = `Logged in as: ${username}`;
       document.getElementById('avatar-setup').style.display = 'none';
+      document.getElementById('username-setup').style.display = 'none';
       document.querySelector('.container').style.display = 'flex';
     } else {
       document.getElementById('avatar-setup').style.display = 'block';
@@ -344,15 +355,8 @@
       .then(data => {
         if (data.success) {
           avatarUrl = data.avatarUrl;
-          username = prompt("Enter your username") || "Anonymous";
-          document.getElementById('username').textContent = `Logged in as: ${username}`;
-          
-          // Store user info in localStorage
-          localStorage.setItem('username', username);
-          localStorage.setItem('avatarUrl', avatarUrl);
-
           document.getElementById('avatar-setup').style.display = 'none';
-          document.querySelector('.container').style.display = 'flex';
+          document.getElementById('username-setup').style.display = 'block';
         } else {
           alert('Avatar upload failed.');
         }
@@ -363,24 +367,33 @@
       });
     });
 
-    // Display incoming messages
+    document.getElementById('confirm-username').addEventListener('click', () => {
+      const usernameInput = document.getElementById('username-input');
+      username = usernameInput.value.trim() || "Anonymous";
+
+      localStorage.setItem('username', username);
+      localStorage.setItem('avatarUrl', avatarUrl);
+
+      document.getElementById('username').textContent = `Logged in as: ${username}`;
+      document.getElementById('username-setup').style.display = 'none';
+      document.querySelector('.container').style.display = 'flex';
+    });
+
     socket.on('chat message', (data) => {
       displayMessage(data.username, data.message, data.timestamp, data.avatarUrl, data.reactions);
     });
 
-    // Display previous chat messages when the page loads
     socket.on('chat messages', (messages) => {
       messages.forEach(msg => {
         displayMessage(msg.username, msg.message, msg.timestamp, msg.avatarUrl, msg.reactions);
       });
     });
 
-    // Handle emoji reactions
     socket.on('message reaction', (messageId, reactions) => {
       const messageElement = document.getElementById(messageId);
       if (messageElement) {
         const reactionsContainer = messageElement.querySelector('.reactions');
-        reactionsContainer.innerHTML = ''; // Clear existing reactions
+        reactionsContainer.innerHTML = '';
         reactions.forEach(reaction => {
           const reactionElement = document.createElement('span');
           reactionElement.classList.add('reaction');
@@ -417,29 +430,25 @@
         </div>
       `;
 
-      // Add emoji reaction event listeners
       const emojiReactions = messageDiv.querySelectorAll('.emoji-reaction');
       emojiReactions.forEach(emoji => {
         emoji.addEventListener('click', () => {
           const reaction = emoji.getAttribute('data-reaction');
           
-          // Update the DOM immediately
           const reactionsContainer = messageDiv.querySelector('.reactions');
           const reactionElement = document.createElement('span');
           reactionElement.classList.add('reaction');
           reactionElement.textContent = reaction;
           reactionsContainer.appendChild(reactionElement);
 
-          // Emit the reaction to the server
           socket.emit('add reaction', timestamp, reaction);
         });
       });
 
       messageContainer.appendChild(messageDiv);
-      messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
+      messageContainer.scrollTop = messageContainer.scrollHeight;
     }
 
-    // Send message only on enter key press
     document.getElementById('message').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const messageInput = document.getElementById('message');
