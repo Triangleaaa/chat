@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Application</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      width: 90%;
+      max-width: 1000px;
+      height: 90%;
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: #1a1a1a;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: #2b2b2b;
+      color: #fff;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid #444;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+
+    .sidebar #username {
+      font-size: 18px;
+      margin-bottom: 40px;
+      text-align: center;
+      color: #7289da;
+    }
+
+    .chat-area {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      background-color: #2b2b2b;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      border-bottom: 1px solid #444;
+    }
+
+    .messages {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #333;
+      border-bottom: 1px solid #444;
+    }
+
+    .message {
+      margin-bottom: 20px;
+      background-color: #444;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+      display: flex;
+      align-items: flex-start;
+      transition: background-color 0.3s ease;
+    }
+
+    .message:hover {
+      background-color: #555;
+    }
+
+    .message img.avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 15px;
+    }
+
+    .message .message-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message .username {
+      font-weight: bold;
+      color: #7289da;
+      font-size: 16px;
+    }
+
+    .message .text {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .message .timestamp {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 10px;
+    }
+
+    .message .emoji-reactions {
+      display: flex;
+      margin-top: 10px;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .emoji-reactions .emoji-reaction {
+      font-size: 20px;
+      transition: transform 0.2s ease;
+    }
+
+    .emoji-reactions .emoji-reaction:hover {
+      transform: scale(1.3);
+    }
+
+    .reactions {
+      display: flex;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .message-input {
+      display: flex;
+      padding: 10px;
+      background-color: #2b2b2b;
+      border-top: 1px solid #444;
+    }
+
+    .message-input input {
+      flex-grow: 1;
+      padding: 12px;
+      background-color: #3c3f41;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: background-color 0.2s ease;
+    }
+
+    .message-input input:focus {
+      background-color: #4e5355;
+      outline: none;
+    }
+
+    .message-input button {
+      background-color: transparent;
+      color: #7289da;
+      padding: 12px 20px;
+      border: 2px solid #7289da;
+      border-radius: 5px;
+      margin-left: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .message-input button:hover {
+      background-color: #7289da;
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .avatar-setup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #2b2b2b;
+      color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .avatar-setup input[type="file"] {
+      margin-top: 15px;
+    }
+
+    .avatar-setup button {
+      margin-top: 20px;
+      background-color: #7289da;
+      padding: 10px;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .avatar-setup button:hover {
+      background-color: #5b6eae;
+    }
+
+    /* Style for Change Profile Button */
+    .change-profile {
+      background-color: #7289da;
+      color: #fff;
+      padding: 12px 20px;
+      margin-top: 20px;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      border: none;
+    }
+
+    .change-profile:hover {
+      background-color: #5b6eae;
+      transform: scale(1.05);
+    }
+
+    .change-profile:active {
+      transform: scale(0.98);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="avatar-setup" id="avatar-setup">
+    <h2>Select an Avatar</h2>
+    <input type="file" id="avatar-upload" accept="image/*" />
+    <button id="confirm-avatar">Confirm</button>
+  </div>
+
+  <div class="container" style="display: none;">
+    <div class="sidebar">
+      <h2>Chat</h2>
+      <div id="username"></div>
+      <div class="change-profile" id="change-profile">Change Username & Avatar</div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <h3>Global Chat</h3>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="message-input">
+        <input type="text" id="message" placeholder="Type a message..." />
+        <button id="send-message">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let username = null;
+    let avatarUrl = null;
+
+    // Check if the user info is stored in localStorage
+    const savedUsername = localStorage.getItem('username');
+    const savedAvatarUrl = localStorage.getItem('avatarUrl');
+
+    if (savedUsername && savedAvatarUrl) {
+      username = savedUsername;
+      avatarUrl = savedAvatarUrl;
+      document.getElementById('username').textContent = `Logged in as: ${username}`;
+      document.getElementById('avatar-setup').style.display = 'none';
+      document.querySelector('.container').style.display = 'flex';
+    } else {
+      document.getElementById('avatar-setup').style.display = 'block';
+    }
+
+    document.getElementById('confirm-avatar').addEventListener('click', () => {
+      const avatarInput = document.getElementById('avatar-upload');
+      const file = avatarInput.files[0];
+
+      if (!file) {
+        alert('Please select an avatar.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      fetch('/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          avatarUrl = data.avatarUrl;
+          username = prompt("Enter your username") || "Anonymous";
+          document.getElementById('username').textContent = `Logged in as: ${username}`;
+          
+          // Store user info in localStorage
+          localStorage.setItem('username', username);
+          localStorage.setItem('avatarUrl', avatarUrl);
+
+          document.getElementById('avatar-setup').style.display = 'none';
+          document.querySelector('.container').style.display = 'flex';
+        } else {
+          alert('Avatar upload failed.');
+        }
+      })
+      .catch(error => {
+        console.error('Error uploading avatar:', error);
+        alert('Failed to upload avatar.');
+      });
+    });
+
+    // Allow the user to change their username and avatar
+    document.getElementById('change-profile').addEventListener('click', () => {
+      const newUsername = prompt('Enter your new username', username);
+      if (newUsername) {
+        username = newUsername;
+        localStorage.setItem('username', username);
+        document.getElementById('username').textContent = `Logged in as: ${username}`;
+      }
+
+      const newAvatarInput = document.createElement('input');
+      newAvatarInput.type = 'file';
+      newAvatarInput.accept = 'image/*';
+      newAvatarInput.click();
+
+      newAvatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const formData = new FormData();
+          formData.append('avatar', file);
+
+          fetch('/upload-avatar', {
+            method: 'POST',
+            body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              avatarUrl = data.avatarUrl;
+              localStorage.setItem('avatarUrl', avatarUrl);
+              document.getElementById('username').textContent = `Logged in as: ${username}`;
+            } else {
+              alert('Avatar upload failed.');
+            }
+          })
+          .catch(error => {
+            console.error('Error uploading avatar:', error);
+            alert('Failed to upload avatar.');
+          });
+        }
+      });
+    });
+
+    // Display incoming messages
+    socket.on('chat message', (data) => {
+      displayMessage(data.username, data.message, data.timestamp, data.avatarUrl, data.reactions);
+    });
+
+    function displayMessage(username, message, timestamp, avatarUrl, reactions = []) {
+      const messageContainer = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message';
+      messageDiv.id = `message-${timestamp}`;
+
+      const formattedTime = new Date(timestamp).toLocaleTimeString();
+
+      messageDiv.innerHTML = `
+        <img src="${avatarUrl}" class="avatar" alt="Avatar" />
+        <div class="message-content">
+          <span class="username">${username}:</span>
+          <span class="text">${message}</span>
+          <div class="timestamp">${formattedTime}</div>
+          <div class="emoji-reactions">
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '👍')">👍</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '❤️')">❤️</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '😂')">😂</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '💀')">💀</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '🗿')">🗿</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '😭')">😭</span>
+            <span class="emoji-reaction" onclick="addReaction('${timestamp}', '🙏')">🙏</span>
+          </div>
+          <div class="reactions" id="reactions-${timestamp}">
+            ${reactions.map(emoji => `<span class="reaction">${emoji}</span>`).join('')}
+          </div>
+        </div>
+      `;
+      messageContainer.appendChild(messageDiv);
+      messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
+    }
+
+    function addReaction(timestamp, emoji) {
+      const reactionsContainer = document.getElementById(`reactions-${timestamp}`);
+      const newReaction = document.createElement('span');
+      newReaction.className = 'reaction';
+      newReaction.textContent = emoji;
+      reactionsContainer.appendChild(newReaction);
+
+      // Send the reaction to the server
+      socket.emit('add reaction', { timestamp, emoji });
+    }
+
+    // Send message only on enter key press
+    document.getElementById('message').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const messageInput = document.getElementById('message');
+        const message = messageInput.value;
+        if (message) {
+          const timestamp = Date.now();
+          socket.emit('chat message', { username, message, timestamp, avatarUrl, reactions: [] });
+          messageInput.value = '';
+        }
+      }
+    });
+
+    document.getElementById('send-message').addEventListener('click', () => {
+      const messageInput = document.getElementById('message');
+      const message = messageInput.value;
+      if (message) {
+        const timestamp = Date.now();
+        socket.emit('chat message', { username, message, timestamp, avatarUrl, reactions: [] });
+        messageInput.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
