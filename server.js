@@ -31,10 +31,16 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Serve the chat page
+// Serve login page at the root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Serve the chat page (this is protected by the frontend logic)
 app.get('/chat', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
+
 
 // Handle avatar upload (POST request)
 app.post('/upload-avatar', upload.single('avatar'), (req, res) => {
