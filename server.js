@@ -1,9 +1,10 @@
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
+const multer = require('multer');
 const http = require('http');
 const socketIo = require('socket.io');
 
+// Initialize the express app
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -32,7 +33,7 @@ app.get('/', (req, res) => {
 
 // Serve the chat page
 app.get('/chat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'chat.html'));
+  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
 
 // Handle avatar upload (POST request)
@@ -61,10 +62,8 @@ io.on('connection', (socket) => {
   });
 });
 
-
-
 // Start the server
 const PORT = process.env.PORT || 3000;
-server.listen(3000,'192.168.0.152', () => {
+server.listen(3000, '192.168.0.152', () => {
   console.log('listening on *:3000');
 });
