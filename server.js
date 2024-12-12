@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Set up multer storage configuration
+// Set up multer storage configuration for avatar uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');  // Save uploaded files to 'uploads' folder
@@ -24,15 +24,19 @@ const upload = multer({ storage });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads')); // Serve the uploads folder
 
-// Serve login page (this will always be the first page the user sees)
+// Serve the login page (this will always be the first page the user sees)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
+  res.sendFile(path.join(__dirname, 'login.html')); // Ensure login.html is served here
 });
 
-// Serve the chat page only after login
+// Serve the chat page only after login (protected route)
 app.get('/chat', (req, res) => {
-  // If no session or user not logged in, redirect to login
-  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+  // Check if the user is logged in, otherwise redirect to login
+  if (req.cookies.loggedIn === 'true') {
+    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+  } else {
+    res.redirect('/'); // Redirect to login if not logged in
+  }
 });
 
 // Handle avatar upload (POST request)
@@ -58,7 +62,6 @@ io.on('connection', (socket) => {
     console.log('A user disconnected');
   });
 });
-
 // Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(3000, '192.168.0.152', () => {
