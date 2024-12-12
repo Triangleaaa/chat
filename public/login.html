@@ -55,9 +55,9 @@
   </div>
 
   <script>
-    // Check if the user is already logged in by checking localStorage
+    // Check if the user is already logged in
     if (localStorage.getItem('loggedIn') === 'true') {
-      // Redirect to chat page if already logged in
+      // If logged in, redirect to chat page
       window.location.href = '/chat';
     }
 
@@ -74,7 +74,7 @@
       localStorage.setItem('loggedIn', 'true');
       localStorage.setItem('username', username);
       
-      // Now save the avatar (you can implement actual avatar upload logic here)
+      // Upload the avatar
       const formData = new FormData();
       formData.append('avatar', avatarFile);
 
@@ -85,7 +85,7 @@
         .then(data => {
           if (data.success) {
             localStorage.setItem('avatarUrl', data.avatarUrl); // Store avatar URL
-            // Redirect to chat page after successful login
+            // Redirect to the chat page after successful login
             window.location.href = '/chat';
           } else {
             alert('Failed to upload avatar');

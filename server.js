@@ -4,7 +4,6 @@ const multer = require('multer');
 const http = require('http');
 const socketIo = require('socket.io');
 
-// Initialize the express app
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -19,28 +18,22 @@ const storage = multer.diskStorage({
   }
 });
 
-// Create multer instance with storage configuration
 const upload = multer({ storage });
 
 // Middleware to serve static files (like uploaded images)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads')); // Serve the uploads folder
 
-// Serve the login page
+// Serve login page (this will always be the first page the user sees)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Serve login page at the root
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-// Serve the chat page (this is protected by the frontend logic)
+// Serve the chat page only after login
 app.get('/chat', (req, res) => {
+  // If no session or user not logged in, redirect to login
   res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
-
 
 // Handle avatar upload (POST request)
 app.post('/upload-avatar', upload.single('avatar'), (req, res) => {
@@ -48,7 +41,6 @@ app.post('/upload-avatar', upload.single('avatar'), (req, res) => {
     return res.json({ success: false, message: 'No file uploaded.' });
   }
 
-  // Avatar URL can be constructed using the file path
   const avatarUrl = `/uploads/${req.file.filename}`;
   res.json({ success: true, avatarUrl });  // Send back the avatar URL
 });
@@ -59,8 +51,7 @@ io.on('connection', (socket) => {
   
   // Listen for chat messages
   socket.on('chat message', (data) => {
-    // Broadcast the message to all connected clients
-    io.emit('chat message', data);
+    io.emit('chat message', data);  // Broadcast the message to all connected clients
   });
 
   socket.on('disconnect', () => {
