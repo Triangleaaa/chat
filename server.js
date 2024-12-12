@@ -1,54 +1,70 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
 const multer = require('multer');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-let messages = []; // Store messages temporarily
-
-// Set up multer for avatar upload
-const upload = multer({ dest: 'uploads/' });
-
-app.use(express.static('public'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Handle avatar upload
-app.post('/upload-avatar', upload.single('avatar'), (req, res) => {
-  const avatarUrl = `/uploads/${req.file.filename}`;
-  res.json({ success: true, avatarUrl });
+// Set up multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');  // Save uploaded files to 'uploads' folder
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));  // Save file with unique name based on timestamp
+  }
 });
 
+// Create multer instance with storage configuration
+const upload = multer({ storage });
+
+// Middleware to serve static files (like uploaded images)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static('uploads')); // Serve the uploads folder
+
+// Serve the login page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Serve the chat page
+app.get('/chat', (req, res) => {
+  res.sendFile(path.join(__dirname, 'chat.html'));
+});
+
+// Handle avatar upload (POST request)
+app.post('/upload-avatar', upload.single('avatar'), (req, res) => {
+  if (!req.file) {
+    return res.json({ success: false, message: 'No file uploaded.' });
+  }
+
+  // Avatar URL can be constructed using the file path
+  const avatarUrl = `/uploads/${req.file.filename}`;
+  res.json({ success: true, avatarUrl });  // Send back the avatar URL
+});
+
+// Set up the WebSocket (Socket.io)
 io.on('connection', (socket) => {
-  console.log('a user connected');
-
-  // Send previous chat messages to the new user
-  socket.emit('chat messages', messages);
-
-  // Handle incoming chat messages
+  console.log('A user connected');
+  
+  // Listen for chat messages
   socket.on('chat message', (data) => {
-    const newMessage = { ...data, reactions: [] };
-    messages.push(newMessage);
-    io.emit('chat message', newMessage);  // Broadcast the new message to all clients
-  });
-
-  // Handle emoji reactions
-  socket.on('add reaction', (messageId, reaction) => {
-    // Find the message by ID and add the reaction
-    const message = messages.find(msg => msg.timestamp === messageId);
-    if (message) {
-      message.reactions.push(reaction);  // Add the reaction to the message
-      io.emit('message reaction', message.timestamp, message.reactions);  // Broadcast updated reactions to all clients
-    }
+    // Broadcast the message to all connected clients
+    io.emit('chat message', data);
   });
 
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    console.log('A user disconnected');
   });
 });
 
+
+
+// Start the server
+const PORT = process.env.PORT || 3000;
 server.listen(3000,'192.168.0.152', () => {
   console.log('listening on *:3000');
 });
